@@ -23,11 +23,12 @@
 #define CPP_MODULE "MAIN"
 #define ITERATIONS 10
 
-#define TIMER_START() time_start = std::chrono::steady_clock::now();
-#define TIMER_END()                                                                         \
-    time_end = std::chrono::steady_clock::now();                                            \
-    time_total  = std::chrono::duration<double, std::milli>(time_end - time_start).count();
-#define TIMER_PRINT(name) std::cout << name <<": " << time_total / 1e3 << " s\n";
+#define TIMER_START(name) time_start_ ## name = std::chrono::steady_clock::now();
+#define TIMER_END()                                                                                   \
+    time_end = std::chrono::steady_clock::now();                                                      \
+    time_total_init  = std::chrono::duration<double, std::milli>(time_end - time_start_init).count(); \
+    time_total_exec  = std::chrono::duration<double, std::milli>(time_end - time_start_exec).count();
+#define TIMER_PRINT(name, msg) std::cout << msg <<": " << time_total_ ## name / 1e3 << " s\n";
 
 #ifdef DEBUG_TIME
 #define START_TIMER() start_time = std::chrono::steady_clock::now();
@@ -126,9 +127,11 @@ void test_correctness(
 
 int main(int argc, char* argv[])
 {
-    std::chrono::steady_clock::time_point time_start;
+    std::chrono::steady_clock::time_point time_start_init;
+    std::chrono::steady_clock::time_point time_start_exec;
     std::chrono::steady_clock::time_point time_end;
-    double time_total = 0.0;
+    double time_total_init = 0.0;
+    double time_total_exec = 0.0;
 
     try {
 
@@ -161,7 +164,7 @@ STOP_TIMER();
 PRINT_TIMER("generate_hashtable ");
 #endif
 
-        TIMER_START()
+        TIMER_START(init)
 
 #ifdef DEBUG_TIME
 START_TIMER();
@@ -172,6 +175,8 @@ START_TIMER();
 STOP_TIMER();
 PRINT_TIMER("init               ");
 #endif
+
+    TIMER_START(exec)
 
     std::vector<KeyValue> kvs;
     for (int iter = 0; iter < ITERATIONS; iter++){
@@ -251,8 +256,9 @@ PRINT_TIMER("iterate_hashtable  ");
 
     }
     TIMER_END()
-    TIMER_PRINT("hashtable - total time for whole calculation")
-    printf("%f million keys/second\n", kNumKeyValues / (time_total / ITERATIONS / 1000.0f) / 1000000.0f);
+    TIMER_PRINT(exec, "hashtable - execution time")
+    TIMER_PRINT(init, "hashtable - total init+exec time")
+    printf("%f million keys/second\n", kNumKeyValues / (time_total_exec / ITERATIONS / 1000.0f) / 1000000.0f);
 
         bool verify = true;
         if (argc > 1 && strcmp(argv[1], "--no-verify") == 0) {
