@@ -83,8 +83,8 @@ int commandLineHelp(void);
 
 int main(int argc, char **argv)
 {
-    Timer tWallClock("WallClock");
-    tWallClock.Start();
+    Timer tWallClockInit("WallClock");
+    tWallClockInit.Start();
     LOG("Starting CUDA main program. Process ID: " << Utility::GetProcessID());
     Utility::QueryCUDADevice();
 
@@ -148,6 +148,9 @@ int main(int argc, char **argv)
     if (Par.outPropagation) {
         ewStart2DOutput();
     }
+
+    Timer tWallClockExec("WallClock");
+    tWallClockExec.Start();
 
     Node.copyToGPU();
 
@@ -236,9 +239,11 @@ int main(int argc, char **argv)
     delete gNode;
 
     LOG("Program successfully completed");
-    tWallClock.Stop();
-    LOG("I/O Time            : " << dAccumulatedIOWriteTime - dAccumulateIOReadTime << " s");
-    LOG("Total Execution Time: " << tWallClock.GetTime() - dAccumulatedIOWriteTime - dAccumulateIOReadTime << " s");
+    tWallClockInit.Stop();
+    tWallClockExec.Stop();
+    LOG("I/O Time            : " << dAccumulatedIOWriteTime + dAccumulateIOReadTime << " s");
+    LOG("Execution Time      : " << tWallClockExec.GetTime() << " s");
+    LOG("Total Init+Exec Time: " << tWallClockInit.GetTime() - dAccumulatedIOWriteTime - dAccumulateIOReadTime << " s");
     return 0;
 }
 
