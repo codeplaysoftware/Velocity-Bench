@@ -57,13 +57,17 @@ int main(int argc, const char** argv) {
 
         DlCifarWorkloadParams workload_params(argc, argv);
 
+        Time wallClockExec = get_time_now();
         VitController::execute(workload_params.getDlNwSizeType(), langHandle, timer, dataFileReadTimer);
         CaitController::execute(workload_params.getDlNwSizeType(), langHandle, timer, dataFileReadTimer);
 
+        double execTime = calculate_op_time_taken(wallClockExec);
+        double totalTime = calculate_op_time_taken(wallClockStart);
+        double ioTime = dataFileReadTimer->getTotalOpTime();
                
-        std::cout << "dataFileReadTimer->getTotalOpTime(): " << dataFileReadTimer->getTotalOpTime() << " s" << std::endl;
-        std::cout << "dl-cifar - total time for whole calculation: " 
-                                                << calculate_op_time_taken(wallClockStart) - dataFileReadTimer->getTotalOpTime() << " s" << std::endl;    
+        std::cout << "dl-cifar - I/O time: " << ioTime << " s" << std::endl;
+        std::cout << "dl-cifar - execution time: " << execTime - ioTime << " s" << std::endl;
+        std::cout << "dl-cifar - total init+exec time: " << totalTime - ioTime << " s" << std::endl;
 
         delete timer;
         delete dataFileReadTimer;
