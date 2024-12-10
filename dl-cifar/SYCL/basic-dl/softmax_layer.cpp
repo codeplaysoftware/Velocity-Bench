@@ -22,6 +22,7 @@
  */
 
 #include "softmax_layer.h"
+#include "SYCL.h"
 
 SoftmaxLayer::SoftmaxLayer(LangHandle *langHandle, Timer* timer,
      int softmaxInputTensorDims[4], int softmaxOutputTensorDims[4],
@@ -108,9 +109,7 @@ SoftmaxLayer::SoftmaxLayer(LangHandle *langHandle, Timer* timer,
 void SoftmaxLayer::doFw() {  
 #if defined(USE_CUBLAS)
 
-    langHandle_->getSyclQueue()->submit([&](sycl::handler &cgh) {
-        //auto d_A = b_A.get_access<sycl::access::mode::read_write>(cgh);
-        cgh.host_task([=](sycl::interop_handle ih) {
+    SYCL::ExecNativeCommand(*langHandle_->getSyclQueue(), [=](sycl::interop_handle ih) {
             cuCtxSetCurrent(ih.get_native_context<sycl::backend::ext_oneapi_cuda>());
             cublasSetStream(*(langHandle_->getCublasHandle()), ih.get_native_queue<sycl::backend::ext_oneapi_cuda>());
 
@@ -129,14 +128,9 @@ void SoftmaxLayer::doFw() {
                                     d_output_));
             //cublasDestroy(handle);
             //cudaStreamSynchronize(cudaStreamHandle);
-            assertDevApiInvar(cudaDeviceSynchronize());
-        });
-    });
-    langHandle_->getSyclQueue()->wait_and_throw();
+        }, []{assertDevApiInvar(cudaDeviceSynchronize())});
 #elif defined(USE_ROCBLAS) 
-    langHandle_->getSyclQueue()->submit([&](sycl::handler &cgh) {
-        //auto d_A = b_A.get_access<sycl::access::mode::read_write>(cgh);
-        cgh.host_task([=](sycl::interop_handle ih) {
+    SYCL::ExecNativeCommand(*langHandle_->getSyclQueue(), [=](sycl::interop_handle ih) {
             //cuCtxSetCurrent(ih.get_native_context<sycl::backend::ext_oneapi_cuda>());
             //cublasSetStream(*(langHandle_->getCublasHandle()), ih.get_native_queue<sycl::backend::ext_oneapi_cuda>());
 
@@ -153,10 +147,7 @@ void SoftmaxLayer::doFw() {
                                     d_output_));
             //cublasDestroy(handle);
             //cudaStreamSynchronize(cudaStreamHandle);
-            assertDevApiInvar(hipDeviceSynchronize());
-        });
-    });
-    langHandle_->getSyclQueue()->wait_and_throw();
+        }, []{assertDevApiInvar(hipDeviceSynchronize())});
 #else
     std::unordered_map<int, memory> softmax_args;
     softmax_args.insert({DNNL_ARG_SRC, src_mem});
@@ -170,9 +161,7 @@ void SoftmaxLayer::doFw() {
 void SoftmaxLayer::doBw() {
 #if defined(USE_CUBLAS)
 
-    langHandle_->getSyclQueue()->submit([&](sycl::handler &cgh) {
-        //auto d_A = b_A.get_access<sycl::access::mode::read_write>(cgh);
-        cgh.host_task([=](sycl::interop_handle ih) {
+    SYCL::ExecNativeCommand(*langHandle_->getSyclQueue(), [=](sycl::interop_handle ih) {
             cuCtxSetCurrent(ih.get_native_context<sycl::backend::ext_oneapi_cuda>());
             cublasSetStream(*(langHandle_->getCublasHandle()), ih.get_native_queue<sycl::backend::ext_oneapi_cuda>());
 
@@ -193,14 +182,9 @@ void SoftmaxLayer::doBw() {
                                     d_d_input_));
             //cublasDestroy(handle);
             //cudaStreamSynchronize(cudaStreamHandle);
-            assertDevApiInvar(cudaDeviceSynchronize());
-        });
-    });
-    langHandle_->getSyclQueue()->wait_and_throw();
+        }, []{assertDevApiInvar(cudaDeviceSynchronize())});
 #elif defined(USE_ROCBLAS)
-    langHandle_->getSyclQueue()->submit([&](sycl::handler &cgh) {
-        //auto d_A = b_A.get_access<sycl::access::mode::read_write>(cgh);
-        cgh.host_task([=](sycl::interop_handle ih) {
+    SYCL::ExecNativeCommand(*langHandle_->getSyclQueue(), [=](sycl::interop_handle ih) {
             //cuCtxSetCurrent(ih.get_native_context<sycl::backend::ext_oneapi_cuda>());
             //cublasSetStream(*(langHandle_->getCublasHandle()), ih.get_native_queue<sycl::backend::ext_oneapi_cuda>());
 
@@ -219,10 +203,7 @@ void SoftmaxLayer::doBw() {
                                     d_d_input_));
             //cublasDestroy(handle);
             //cudaStreamSynchronize(cudaStreamHandle);
-            assertDevApiInvar(hipDeviceSynchronize());
-        });
-    });
-    langHandle_->getSyclQueue()->wait_and_throw();
+        }, []{assertDevApiInvar(hipDeviceSynchronize())});
 #else    
     std::unordered_map<int, memory> softmax_args;
     softmax_args.insert({DNNL_ARG_SRC, src_mem});
