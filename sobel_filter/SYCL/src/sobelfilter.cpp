@@ -32,17 +32,12 @@
 #include "Utilities.h"
 #include "Logging.h"
 
-#define TIMER_START() time_start = std::chrono::steady_clock::now();
-#define TIMER_END()                                                                         \
-    time_end = std::chrono::steady_clock::now();                                            \
-    time_total  = std::chrono::duration<double, std::milli>(time_end - time_start).count();
-#define TIMER_PRINT(name) std::cout << name <<": " << (time_total - time_total_) / 1e3 << " s\n";
-
-#define TIMER_START_() time_start_ = std::chrono::steady_clock::now();
-#define TIMER_END_()                                                                         \
-    time_end_ = std::chrono::steady_clock::now();                                            \
-    time_total_  += std::chrono::duration<double, std::milli>(time_end_ - time_start_).count();
-#define TIMER_PRINT_(name) std::cout << name <<": " << time_total_ / 1e3 << " s\n";
+#define TIMER_START(name) time_start_ ## name = std::chrono::steady_clock::now();
+#define TIMER_END(name)                                               \
+    time_total_ ## name += std::chrono::duration<double, std::milli>( \
+    std::chrono::steady_clock::now() - time_start_ ## name).count();
+#define TIMER_SUBTRACT(name1, name2) time_total_ ## name1 -= time_total_ ## name2;
+#define TIMER_PRINT(name, msg) std::cout << msg <<": " << time_total_ ## name / 1e3 << " s\n";
 
 #define START_TIMER() start_time = std::chrono::steady_clock::now();
 #define STOP_TIMER()                                                                        \
@@ -123,15 +118,14 @@ void computeGradient(
 
 int main(int argc, const char* argv[])
 {
-    std::chrono::steady_clock::time_point time_start;
-    std::chrono::steady_clock::time_point time_end;
-    double time_total = 0.0;
+    std::chrono::steady_clock::time_point time_start_init;
+    std::chrono::steady_clock::time_point time_start_exec;
+    std::chrono::steady_clock::time_point time_start_io;
+    double time_total_init = 0.0;
+    double time_total_exec = 0.0;
+    double time_total_io = 0.0;
 
-    std::chrono::steady_clock::time_point time_start_;
-    std::chrono::steady_clock::time_point time_end_;
-    double time_total_ = 0.0;
-
-    TIMER_START()
+    TIMER_START(init)
 
     try {
     LOG("Welcome to the SYCL version of Sobel filter workload.");
@@ -147,23 +141,23 @@ int main(int argc, const char* argv[])
         LOG_ERROR("# of iterations must be within range [1, 100]");
     }
 
-    // TIMER_START_()
+    // TIMER_START(io)
     // LOG("Input image file: "<< inputfile);
     // Mat inputimage = imread(inputfile, IMREAD_COLOR);
     // if (inputimage.empty()) {
     //     LOG_ERROR("Failed to open input image\n");
     //     return -1;
     // }
-    // TIMER_END_()
+    // TIMER_END(io)
 
-    TIMER_START_()
+    TIMER_START(io)
     LOG("Input image file: "<< inputfile);
     Mat scaledImage = imread(inputfile, IMREAD_GRAYSCALE);
     if (scaledImage.empty()) {
         LOG_ERROR("Failed to open input image\n");
         return -1;
     }
-    TIMER_END_()
+    TIMER_END(io)
 
     // LOG("Scaling image...");
     // Mat scaledImage = preprocess(inputimage, iScaleFactor);
@@ -197,6 +191,7 @@ int main(int argc, const char* argv[])
     std::cout << std::endl;
 #endif
 
+    TIMER_START(exec)
     while(counter > 0) {
 
 #ifdef DEBUG_TIME
@@ -264,8 +259,9 @@ int main(int argc, const char* argv[])
         std::cout << std::endl;
 #endif
     }
+    TIMER_END(exec)
 
-    TIMER_START_()
+    TIMER_START(io)
     Mat outputimage = cv::Mat::zeros(rows - 2, cols - 2, CV_8UC1);
     for(int i = 0; i< rows - 2; i++) {
         for(int j = 0; j< cols - 2; j++) {
@@ -295,11 +291,13 @@ int main(int argc, const char* argv[])
     } catch (std::exception const& e) {
         std::cout << "Exception: " << e.what() << "\n";
     }
-    TIMER_END_()
-    TIMER_PRINT_("time to subtract from total")
+    TIMER_END(io)
+    TIMER_END(init)
+    TIMER_SUBTRACT(init, io)
 
-    TIMER_END()
-    TIMER_PRINT("sobelfilter - total time for whole calculation")
+    TIMER_PRINT(io, "sobelfilter - I/O time")
+    TIMER_PRINT(exec, "sobelfilter - execution time")
+    TIMER_PRINT(init, "sobelfilter - total init+exec time")
 
     return 0;
 }
