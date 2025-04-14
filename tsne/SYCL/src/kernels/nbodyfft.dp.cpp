@@ -32,6 +32,7 @@
 #include "../include/kernels/atomic.h"
 #include <complex>
 #include "../include/kernels/nbodyfft.h"
+#include "SYCL.h"
 
 const float PI = 3.14159265358979f;
 // const float twoPI = 3.14159265358979f * 2;
@@ -673,13 +674,14 @@ void tsnecuda::NbodyFFT2D(
 
 
 #if defined(USE_NVIDIA_BACKEND)
-    myQueue.submit([&](sycl::handler &cgh) {
-        cgh.host_task([=] {
+    CUstream cuStream_dft;
+    SYCL::ExecNativeCommand(myQueue, [=, &cuStream_dft](sycl::interop_handle ih){
+            cuCtxSetCurrent(ih.get_native_context<sycl::backend::ext_oneapi_cuda>());
+            cuStream_dft = ih.template get_native_queue<sycl::backend::ext_oneapi_cuda>();
+            cufftSetStream(plan_dft, cuStream_dft);
             cufftExecR2C(plan_dft, (float*)fft_input, (float2*)fft_w_coefficients);
-            cudaStreamSynchronize(0);
             //cufftDestroy(cufft_plan_fwd);
-        });
-    });
+    }, [&cuStream_dft]{cudaStreamSynchronize(cuStream_dft);});
     myQueue.wait_and_throw();
 
 #else
@@ -742,13 +744,14 @@ void tsnecuda::NbodyFFT2D(
 
 #if defined(USE_NVIDIA_BACKEND)
     myQueue.wait_and_throw();
-    myQueue.submit([&](sycl::handler &cgh) {
-        cgh.host_task([=] {
+    CUstream cuStream_idft;
+    SYCL::ExecNativeCommand(myQueue, [=, &cuStream_idft](sycl::interop_handle ih){
+            cuCtxSetCurrent(ih.get_native_context<sycl::backend::ext_oneapi_cuda>());
+            cuStream_idft = ih.template get_native_queue<sycl::backend::ext_oneapi_cuda>();
+            cufftSetStream(plan_idft, cuStream_idft);
             cufftExecC2R(plan_idft, (float2*)fft_w_coefficients, (float*)fft_output);
-            cudaStreamSynchronize(0);
             //cufftDestroy(cufft_plan_fwd);
-        });
-    });
+    }, [&cuStream_idft]{cudaStreamSynchronize(cuStream_idft);});
     myQueue.wait_and_throw();
 
     std::vector<sycl::event> events2 = {};

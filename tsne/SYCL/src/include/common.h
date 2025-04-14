@@ -45,6 +45,7 @@
 #if defined(USE_NVIDIA_BACKEND)
 #include <cufft.h>
 #include <cuda_runtime.h>
+#include <cuda.h>
 #else
 #include <oneapi/mkl.hpp>
 typedef oneapi::mkl::dft::descriptor<oneapi::mkl::dft::precision::SINGLE, oneapi::mkl::dft::domain::REAL> descriptor_t;

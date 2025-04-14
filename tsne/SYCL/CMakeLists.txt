@@ -149,6 +149,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/src/include
     ${CMAKE_SOURCE_DIR}/../data
+    ${CMAKE_SOURCE_DIR}/../../infrastructure
 )
 
 add_executable(tsne ${SOURCES})
@@ -158,6 +159,6 @@ if(NOT USE_NVIDIA_BACKEND)
     target_include_directories(tsne PUBLIC $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_INCLUDE_DIRECTORIES>)
     target_link_libraries(tsne PUBLIC $<LINK_ONLY:MKL::MKL_DPCPP>)
 else()
-    target_link_libraries(tsne ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_cusparse_LIBRARY})
+    target_link_libraries(tsne ${CUDA_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_cusparse_LIBRARY})
 endif()
 
