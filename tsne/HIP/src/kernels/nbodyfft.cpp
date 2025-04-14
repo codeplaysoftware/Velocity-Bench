@@ -241,7 +241,7 @@ void compute_potential_indices(
 __host__ __device__
 float squared_cauchy_2d(float x1, float x2, float y1, float y2)
 {
-    return pow(1.0f + pow(x1 - y1, 2) + pow(x2 - y2, 2), -2);
+    return powf(1.0f + (x1 - y1) * (x1 - y1) + (x2 - y2) * (x2 - y2), -2);
 }
 
 __global__
