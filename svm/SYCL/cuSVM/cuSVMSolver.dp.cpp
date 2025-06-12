@@ -48,7 +48,7 @@ SOFTWARE.
 SPDX-License-Identifier: MIT License
 */
 
-#define NUM_ITERATIONS 100
+#define NUM_ITERATIONS 1000
 
 #ifndef KERNEL_USE_PROFILE
 #define KERNEL_USE_PROFILE 0

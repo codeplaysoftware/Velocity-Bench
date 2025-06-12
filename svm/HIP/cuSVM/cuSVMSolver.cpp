@@ -73,7 +73,7 @@ __constant__ float taumin;
 __constant__ float kernelwidth;
 
 
-#define NUM_ITERATIONS 100
+#define NUM_ITERATIONS 1000
 
 template <unsigned int blockSize>
 __global__ void FindBJ(float *d_F, float* d_y,float* d_alpha,float* d_KernelCol,float *g_odata,int* g_index,float BIValue, unsigned int n)
